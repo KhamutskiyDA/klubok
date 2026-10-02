@@ -1,0 +1,13 @@
+.DS_Store
+
+# Личные заметки разработчика — никогда не коммитить
+CLAUDE.local.md
+*.local.md
+.claude/settings.local.json
+
+# Obsidian: состояние окна и корзина
+vault/.obsidian/workspace*.json
+vault/.trash/
+
+# Временные файлы прогонов
+evals/tmp/

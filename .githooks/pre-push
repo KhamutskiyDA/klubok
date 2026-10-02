@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# Перед пушем: проверка на личные данные по рабочему дереву и всей истории.
+exec "$(dirname "$0")/../scripts/privacy-scan.sh" --history
