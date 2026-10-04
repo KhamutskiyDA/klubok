@@ -3,6 +3,7 @@
 Здесь лежит всё, что нужно, чтобы прогнать сценарий из `scenarios/` на настоящем помощнике и оценить результат.
 
 - `scenarios/` — сценарии, заморожены тегом `scenarios-v0.1`. Формат — в [scenarios/README.md](scenarios/README.md).
+- `scenarios-heldout/` — скрытые варианты сценариев, результаты по ним разведочные. См. [scenarios/README.md](scenarios/README.md), раздел «Скрытые варианты».
 - `run.sh` — раннер.
 - `fixtures/` — исходное состояние vault для сценариев.
 - `checklist.md` — как оценивать прогон вручную.
