@@ -23,7 +23,8 @@ trap 'rm -rf "$tmp"' EXIT
 # Заглушка claude: пишет argv, stdin, cwd, окружение и снимок cwd каждого вызова в $STUB_LOG,
 # создаёт файл в cwd и папку транскриптов в $HOME/.claude/projects, печатает поддельный stream-json.
 # STUB_FAIL_AT=N — вызов N падает; STUB_ERROR_AT=N — вызов N выходит с 0, но is_error в result;
-# STUB_LEAK_AT=N — в init вызова N есть плагин; STUB_DENY_AT=N — в result вызова N отказ в доступе.
+# STUB_LEAK_AT=N — в init вызова N есть плагин; STUB_DENY_AT=N — в result вызова N отказ в доступе;
+# STUB_BUILTIN_AT=N — в init вызова N встроенный плагин plugin-authoring@builtin, как у CLI 2.1.272.
 stub="$tmp/claude-stub"
 cat > "$stub" <<'EOF'
 #!/usr/bin/env bash
@@ -40,10 +41,15 @@ mkdir "$STUB_LOG/$id.snap" && cp -R . "$STUB_LOG/$id.snap/"
 if [[ "${STUB_FAIL_AT:-}" == "$n" ]]; then echo "boom" >&2; exit 3; fi
 mkdir -p Journal && echo "запись $id" > "Journal/stub-$id.md"
 plugins='[]'; [[ "${STUB_LEAK_AT:-}" == "$n" ]] && plugins='[{"name":"leaked-plugin"}]'
+skills='["x"]'
+if [[ "${STUB_BUILTIN_AT:-}" == "$n" ]]; then
+  plugins='[{"name":"plugin-authoring","path":"builtin","source":"plugin-authoring@builtin"}]'
+  skills='["x","plugin-authoring"]'
+fi
 is_error=false; [[ "${STUB_ERROR_AT:-}" == "$n" ]] && is_error=true
 denials='[]'; [[ "${STUB_DENY_AT:-}" == "$n" ]] && denials='[{"tool_name":"Write","tool_use_id":"d1","tool_input":{"file_path":"/etc/outside.md"}}]'
 cat <<JSON
-{"type":"system","subtype":"init","session_id":"s-$id","model":"stub-model","tools":["Read","Write"],"skills":["x"],"mcp_servers":[],"plugins":$plugins}
+{"type":"system","subtype":"init","session_id":"s-$id","model":"stub-model","tools":["Read","Write"],"skills":$skills,"mcp_servers":[],"plugins":$plugins}
 {"type":"assistant","message":{"content":[{"type":"text","text":"Ответ заглушки $id"}]}}
 {"type":"assistant","message":{"content":[{"type":"tool_use","id":"t$id","name":"Write","input":{"file_path":"Journal/stub-$id.md","content":"запись $id"}}]}}
 {"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"t$id","content":"File created successfully"}]}}
@@ -177,6 +183,7 @@ done
 check "только проектные настройки" 0 "$(grep -A1 -x -- '--setting-sources' "$log/01.args" | grep -qx project; echo $?)"
 check "без Bash и веба" 0 "$(grep -A1 -x -- '--tools' "$log/01.args" | tail -n 1 | grep -qvE 'Bash|Web'; echo $?)"
 check "автопамять выключена" 0 "$(has "$log/01.args" '"autoMemoryEnabled":false')"
+check "встроенный плагин plugin-authoring выключен" 0 "$(has "$log/01.args" '"enabledPlugins":{"plugin-authoring@builtin":false}')"
 check "переменные родительского Claude Code убраны" 1 "$(grep -qE '^(CLAUDECODE|CLAUDE_CODE_SESSION_ID|CLAUDE_CODE_ENTRYPOINT)=' "$log/01.env"; echo $?)"
 check "транскрипты прогона удалены" 1 "$(exists "$tmp/home/.claude/projects/$(sed 's/[^A-Za-z0-9]/-/g' "$log/01.cwd")")"
 check "чужие транскрипты не тронуты" 0 "$(exists "$tmp/home/.claude/projects/-other-project")"
@@ -232,6 +239,7 @@ check "meta: фикстура" 0 "$(has "$m" 'fresh')"
 check "meta: версия claude" 0 "$(has "$m" 'stub-claude 0.0')"
 check "meta: флаги" 0 "$(has "$m" '--permission-mode acceptEdits')"
 check "meta: модель" 0 "$(has "$m" 'stub-m')"
+check "meta: модель из init первого хода" 0 "$(has "$m" 'модель в init: stub-model')"
 check "meta: коммит" 0 "$(has "$m" "$(git -C "$root" rev-parse --short HEAD)")"
 
 g="$out/grading.md"
@@ -251,6 +259,7 @@ check "фикстура по умолчанию onboarded" 0 "$(has "$log/01.sna
 check "чужая фикстура не наложена" 1 "$(exists "$log/01.snap/Me/fresh.md")"
 check "без KLUBOK_EVAL_MODEL нет --model" 1 "$(has "$log/01.args" --model)"
 check "meta: фикстура onboarded" 0 "$(has "$tmp/out-def/meta.txt" 'onboarded')"
+check "meta: без KLUBOK_EVAL_MODEL модель из init" 0 "$(has "$tmp/out-def/meta.txt" 'модель в init: stub-model')"
 
 # Падение claude на ходе 2: код 1, ход 3 не запускается, vault-after сохранён.
 log="$tmp/l-fail"; out="$tmp/out-fail"
@@ -274,6 +283,14 @@ STUB_LEAK_AT=2 go "$log" "$scen" "$out" >/dev/null 2>&1; check "плагин в 
 check "после нарушения изоляции вызовов больше нет" 2 "$(calls "$log")"
 check "транскрипт: изоляция нарушена" 0 "$(has "$out/transcript.md" 'изоляция нарушена')"
 check "meta: изоляция нарушена" 0 "$(has "$out/meta.txt" 'изоляция нарушена')"
+
+# Встроенный плагин plugin-authoring@builtin в init: раннер выключает его в --settings,
+# и если он всё же появился, это нарушение изоляции, как с любым другим плагином.
+log="$tmp/l-builtin"; out="$tmp/out-builtin"
+STUB_BUILTIN_AT=1 go "$log" "$scen" "$out" >/dev/null 2>&1; check "plugin-authoring@builtin в init → 1" 1 $?
+check "после встроенного плагина вызовов больше нет" 1 "$(calls "$log")"
+check "meta: встроенный плагин — нарушение изоляции" 0 "$(has "$out/meta.txt" 'изоляция нарушена')"
+check "meta: названо, какой плагин" 0 "$(has "$out/meta.txt" 'plugin-authoring@builtin')"
 
 # Отказ в доступе не ошибка прогона, но виден в транскрипте.
 log="$tmp/l-deny"; out="$tmp/out-deny"

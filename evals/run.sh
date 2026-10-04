@@ -11,9 +11,11 @@ set -euo pipefail
 # Флаги claude для каждого хода; -p, --model и --continue добавляются отдельно.
 # Изоляция от личной настройки Claude Code (глобальный CLAUDE.md, плагины, хуки, автопамять, MCP):
 # только настройки проекта, без MCP; из инструментов — только файлы vault и скиллы.
+# Встроенный плагин plugin-authoring CLI включает не во всех запусках (флаг на стороне сервера),
+# поэтому он выключен явно.
 claude_flags=(--output-format stream-json --verbose
   --setting-sources project
-  --settings '{"autoMemoryEnabled":false,"disableBundledSkills":true}'
+  --settings '{"autoMemoryEnabled":false,"disableBundledSkills":true,"enabledPlugins":{"plugin-authoring@builtin":false}}'
   --strict-mcp-config
   --tools Read,Write,Edit,Glob,Grep,Skill
   --permission-mode acceptEdits)
@@ -111,6 +113,11 @@ for (( i = 1; i <= turns; i++ )); do
   [[ -s "$out/turns/$id.stderr" ]] || rm -f "$out/turns/$id.stderr"
   if [[ " ${args[*]} " == *" --continue "* ]]; then cont=", --continue"; else cont=""; fi
   echo "ход $i: код $code$cont" >> "$out/meta.txt"
+  if (( i == 1 )); then
+    init_model="$(jq -R -r 'fromjson? | objects | select(.type == "system" and .subtype == "init") | .model // empty' \
+      "$out/turns/$id.jsonl" | head -n 1)"
+    echo "модель в init: ${init_model:-нет init}" >> "$out/meta.txt"
+  fi
   if (( code != 0 )); then
     failmsg="claude завершился, код $code, см. turns/$id.stderr."
   else
@@ -118,7 +125,7 @@ for (( i = 1; i <= turns; i++ )); do
     failmsg="$(jq -R -r 'fromjson? | objects |
       if .type == "system" and .subtype == "init"
          and ((.plugins // []) + (.mcp_servers // []) | length) > 0
-      then "изоляция нарушена: в init есть плагины или MCP-серверы, прогон не засчитывается."
+      then "изоляция нарушена: в init есть плагины или MCP-серверы (\([(.plugins // [])[] | .source? // .name? // tostring] + [(.mcp_servers // [])[] | .name? // tostring] | join(", "))), прогон не засчитывается."
       elif .type == "result" and .is_error == true
       then "claude вернул ошибку: \(.result // .terminal_reason // "?")"
       else empty end' "$out/turns/$id.jsonl" | head -n 1)"
