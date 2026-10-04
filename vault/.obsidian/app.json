@@ -1,5 +1,6 @@
 {
   "alwaysUpdateLinks": true,
   "useMarkdownLinks": false,
-  "newLinkFormat": "shortest"
+  "newLinkFormat": "shortest",
+  "showInlineTitle": false
 }
