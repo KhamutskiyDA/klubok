@@ -33,7 +33,7 @@ evals/run.sh evals/scenarios/13-quick-abcde.md [out-dir]
 **Изоляция.** Прогон не должен зависеть от личной настройки Claude Code на машине мейнтейнера: глобального `~/.claude/CLAUDE.md`, скиллов, плагинов, хуков, автопамяти, MCP. Поэтому раннер вызывает `claude` так (массив `claude_flags` в начале `run.sh`):
 
 - `--setting-sources project` — только настройки и `CLAUDE.md` самого vault, без пользовательских;
-- `--settings '{"autoMemoryEnabled":false,"disableBundledSkills":true,"enabledPlugins":{"plugin-authoring@builtin":false}}'` — без автопамяти, встроенных скиллов и встроенного плагина `plugin-authoring` (см. ниже);
+- `--settings '{"autoMemoryEnabled":false,"disableBundledSkills":true,"enabledPlugins":{"plugin-authoring@builtin":false,"cc-plugin-agents-md@builtin":false,"cc-plugin-telemetry@builtin":false}}'` — без автопамяти, встроенных скиллов и встроенных плагинов `plugin-authoring`, `cc-plugin-agents-md`, `cc-plugin-telemetry` (см. ниже);
 - `--strict-mcp-config` — без MCP-серверов и коннекторов claude.ai;
 - `--tools Read,Write,Edit,Glob,Grep,Skill` — только файлы и скиллы, без Bash и веба;
 - `--permission-mode acceptEdits` — запись в копию vault без запросов; запись за её пределы отклоняется.
@@ -48,6 +48,11 @@ evals/run.sh evals/scenarios/13-quick-abcde.md [out-dir]
 - Проверено 2026-10-04 на CLI 2.1.272. Переменная `CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1` включает плагин в каждом запуске: без настройки он есть в init, с настройкой его нет. Так же можно проверить новую версию CLI.
 - Проверка init не ослаблена: если плагин всё же появился, прогон по-прежнему останавливается. Значит, настройка не сработала, и раннер нужно чинить.
 - Повторять ход нельзя: он уже ушёл в модель и попал в историю `--continue`.
+
+**Встроенные плагины CLI 2.1.288.** Эта версия в каждом запуске включает `cc-plugin-agents-md@builtin` и `cc-plugin-telemetry@builtin`. 2026-10-04 из-за них первая попытка базового прогона 11 остановилась на ходе 1 как недействительная.
+
+- Раннер выключает их тем же `enabledPlugins`. Проверено 2026-10-04 на CLI 2.1.288: без настройки оба плагина есть в init, с настройкой их нет. Проверка ничего не стоит: `claude -p` с флагами раннера и несуществующей моделью (`--model klubok-no-such-model`) выводит init и останавливается до запроса к модели.
+- Новая версия CLI может принести новые встроенные плагины. Проверка init их поймает и остановит прогон на первом ходу. Поэтому версию CLI на время подтверждающих прогонов закрепляют (`DISABLE_AUTOUPDATER=1`), а после обновления сначала делают бесплатную проверку выше.
 
 После прогона раннер удаляет временную копию и транскрипты прогона в `~/.claude/projects/`: они нужны только для `--continue`, а сырой вывод уже сохранён в `turns/`.
 
