@@ -183,7 +183,11 @@ done
 check "только проектные настройки" 0 "$(grep -A1 -x -- '--setting-sources' "$log/01.args" | grep -qx project; echo $?)"
 check "без Bash и веба" 0 "$(grep -A1 -x -- '--tools' "$log/01.args" | tail -n 1 | grep -qvE 'Bash|Web'; echo $?)"
 check "автопамять выключена" 0 "$(has "$log/01.args" '"autoMemoryEnabled":false')"
-check "встроенный плагин plugin-authoring выключен" 0 "$(has "$log/01.args" '"enabledPlugins":{"plugin-authoring@builtin":false}')"
+# Встроенные плагины CLI: plugin-authoring (2.1.272, не во всех запусках), agents-md и telemetry (2.1.288, в каждом).
+settings_json="$(grep -A1 -x -- '--settings' "$log/01.args" | tail -n 1)"
+for p in plugin-authoring cc-plugin-agents-md cc-plugin-telemetry; do
+  check "встроенный плагин $p выключен" 0 "$(jq -e --arg p "$p@builtin" '.enabledPlugins[$p] == false' <<<"$settings_json" >/dev/null 2>&1; echo $?)"
+done
 check "переменные родительского Claude Code убраны" 1 "$(grep -qE '^(CLAUDECODE|CLAUDE_CODE_SESSION_ID|CLAUDE_CODE_ENTRYPOINT)=' "$log/01.env"; echo $?)"
 check "транскрипты прогона удалены" 1 "$(exists "$tmp/home/.claude/projects/$(sed 's/[^A-Za-z0-9]/-/g' "$log/01.cwd")")"
 check "чужие транскрипты не тронуты" 0 "$(exists "$tmp/home/.claude/projects/-other-project")"

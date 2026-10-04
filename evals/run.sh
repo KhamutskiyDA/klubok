@@ -11,11 +11,11 @@ set -euo pipefail
 # Флаги claude для каждого хода; -p, --model и --continue добавляются отдельно.
 # Изоляция от личной настройки Claude Code (глобальный CLAUDE.md, плагины, хуки, автопамять, MCP):
 # только настройки проекта, без MCP; из инструментов — только файлы vault и скиллы.
-# Встроенный плагин plugin-authoring CLI включает не во всех запусках (флаг на стороне сервера),
-# поэтому он выключен явно.
+# Встроенные плагины выключены явно: plugin-authoring CLI включает не во всех запусках
+# (флаг на стороне сервера), agents-md и telemetry CLI 2.1.288 включает в каждом.
 claude_flags=(--output-format stream-json --verbose
   --setting-sources project
-  --settings '{"autoMemoryEnabled":false,"disableBundledSkills":true,"enabledPlugins":{"plugin-authoring@builtin":false}}'
+  --settings '{"autoMemoryEnabled":false,"disableBundledSkills":true,"enabledPlugins":{"plugin-authoring@builtin":false,"cc-plugin-agents-md@builtin":false,"cc-plugin-telemetry@builtin":false}}'
   --strict-mcp-config
   --tools Read,Write,Edit,Glob,Grep,Skill
   --permission-mode acceptEdits)
