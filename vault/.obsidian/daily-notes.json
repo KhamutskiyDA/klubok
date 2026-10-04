@@ -1,0 +1,6 @@
+{
+  "folder": "Journal",
+  "format": "YYYY-MM-DD",
+  "template": "Templates/Дневник",
+  "autorun": false
+}
