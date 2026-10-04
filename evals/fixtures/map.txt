@@ -4,3 +4,4 @@
 # Пустые строки и строки с # пропускаются.
 
 11-first-run-no-onboarding fresh
+h11-first-run-variant fresh
