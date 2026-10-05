@@ -7,7 +7,17 @@ CLAUDE.local.md
 
 # Obsidian: состояние окна и корзина
 vault/.obsidian/workspace*.json
+vault/.obsidian/appearance.json
 vault/.trash/
+
+# ZIP релизов (scripts/release.sh)
+build/
 
 # Временные файлы прогонов
 evals/tmp/
+
+# Одноразовые задания для чатов — выполнились и устарели
+docs/tasks/
+
+# Рабочие деревья агентов (git worktree)
+.claude/worktrees/
