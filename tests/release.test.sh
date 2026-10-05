@@ -51,7 +51,8 @@ git checkout -q -- vault/CLAUDE.md
 
 # Первый релиз. Неотслеживаемый файл Obsidian в рабочей папке не должен попасть в ZIP.
 echo '{"w":1}' > vault/.obsidian/workspace.json
-run "$release" 0.1.0 >/dev/null 2>&1; check "релиз 0.1.0 → 0" 0 $?
+out="$(run "$release" 0.1.0 2>&1)"; check "релиз 0.1.0 → 0" 0 $?
+check "вывод: следующий шаг — push dist" 0 "$(grep -q -F "git push origin dist" <<< "$out"; echo $?)"
 tree="$(git ls-tree -r --name-only dist 2>/dev/null)"
 check "dist: CLAUDE.md в корне" 0 "$(listed "$tree" CLAUDE.md)"
 check "dist: скрытая .claude/" 0 "$(listed "$tree" .claude/skills/x/SKILL.md)"
