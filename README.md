@@ -101,7 +101,7 @@ git pull --no-rebase --no-edit upstream dist
 
 Флаги нужны, если ты коммитишь свои записи для резервной копии: git соединит их с обновлением и ничего не спросит.
 
-**ZIP:** скачай новый ZIP и замени у себя только `CLAUDE.md`, `.claude/`, `Reference/` и `Templates/`. Папки `Journal/`, `Reviews/` и `Me/` не трогай.
+**ZIP:** скачай новый `klubok-X.Y.Z.zip` и замени у себя только `CLAUDE.md`, `.claude/`, `Reference/` и `Templates/`. Папки `Journal/`, `Reviews/` и `Me/` не трогай.
 
 Обновления меняют только системное: `CLAUDE.md`, `.claude/`, `Reference/`, `Templates/`. Твои `Journal/`, `Reviews/` и `Me/` они не трогают никогда.
 

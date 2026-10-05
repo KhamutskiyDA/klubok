@@ -37,3 +37,4 @@ zip="build/klubok-$version.zip"
 git archive --format=zip --prefix=Klubok/ -o "$zip" dist
 
 echo "release: dist → $(git rev-parse --short dist), ZIP → $zip"
+echo "Дальше вручную: git push origin dist; gh release create v$version $zip --verify-tag --notes-file docs/releases/v$version.md"
